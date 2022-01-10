@@ -1,6 +1,9 @@
 #include <ao/ao.h>
 #include <iostream>
+
+#ifdef __arm__
 #include <pigpio.h>
+#endif
 
 int main(void)
 {
