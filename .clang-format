@@ -1,0 +1,10 @@
+---
+BasedOnStyle: LLVM
+IndentWidth: 4
+---
+Language: Cpp
+BreakBeforeBraces: Linux
+BreakConstructorInitializers: BeforeComma
+ColumnLimit: 100
+ReflowComments: false
+---
