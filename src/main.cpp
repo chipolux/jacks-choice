@@ -5,6 +5,8 @@
 #include <iostream>
 #include <thread>
 
+#include "choice.hpp"
+
 #ifdef __arm__
 #include <pigpio.h>
 
@@ -126,14 +128,11 @@ void playTrack()
 void cycleServo()
 {
 #ifdef __arm__
-    int i = 0;
-    while (!stopPlaying.load() && i < 30) {
-        std::cout << "Cycling servo: " << i << std::endl;
+    while (!stopPlaying.load()) {
         gpioPWM(PWM_PIN, 400);
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        std::this_thread::sleep_for(std::chrono::milliseconds(TEMPO_MS));
         gpioPWM(PWM_PIN, 2300);
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        i++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(TEMPO_MS));
     }
 #else
     std::cout << "Cannot cycle servo on this platform." << std::endl;
