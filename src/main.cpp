@@ -1,4 +1,5 @@
 #include <ao/ao.h>
+#include <atomic>
 #include <chrono>
 #include <fstream>
 #include <iostream>
