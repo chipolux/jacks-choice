@@ -1,23 +1,22 @@
 #ifndef CHOICE_HPP
 #define CHOICE_HPP
 
+#include <vector>
+
 #define TEMPO_MS 477
 
 struct ServoEvent {
     const unsigned long ms;
     const int angle;
-    const bool end;
 
-    ServoEvent(unsigned long ms, int angle, bool end = false)
+    ServoEvent(unsigned long ms, int angle)
         : ms(ms)
         , angle(angle)
-        , end(end)
     {
     }
 };
 
-// we must have at least one servo event in our list marked as the end
-const ServoEvent servoEvents[] = {
+const std::vector<ServoEvent> servoEvents = {
     {1972, 180},  // love
     {2442, 0},    // brain
     {2912, 180},  // heart
@@ -78,7 +77,6 @@ const ServoEvent servoEvents[] = {
     {30927, 180}, // -pa-
     {31044, 0},   // -mine
     {31569, 180}, // eh--
-    {0, 0, true},
 };
 
 #endif

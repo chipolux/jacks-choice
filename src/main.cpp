@@ -7,6 +7,11 @@
 
 #include "choice.hpp"
 
+#define UNUSED(expr) (void)(expr)
+
+// servos run from 400us to 2300us for 180 degrees
+#define ANGLE(angle) ((((2300 - 400) / 180) * angle) + 400)
+
 #ifdef __arm__
 #include <pigpio.h>
 
@@ -27,6 +32,7 @@ bool initSubsystems();
 void shutdownSubsystems();
 void playTrack();
 void cycleServo();
+void setPwm(const int angle);
 
 int main(void)
 {
@@ -127,14 +133,35 @@ void playTrack()
 
 void cycleServo()
 {
-#ifdef __arm__
+    std::cout << "Total events: " << servoEvents.size() << std::endl;
+    auto event = servoEvents.cbegin();
+    auto endEvent = servoEvents.cend();
+    auto startTime = std::chrono::system_clock::now();
     while (!stopPlaying.load()) {
-        gpioPWM(PWM_PIN, 400);
-        std::this_thread::sleep_for(std::chrono::milliseconds(TEMPO_MS));
-        gpioPWM(PWM_PIN, 2300);
-        std::this_thread::sleep_for(std::chrono::milliseconds(TEMPO_MS));
+        auto now = std::chrono::system_clock::now();
+        const unsigned long ms =
+            std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime).count();
+
+        if (ms >= event->ms) {
+            std::cout << "Handling event, off by " << ms - event->ms << std::endl;
+            std::cout << "   ms:    " << event->ms << std::endl;
+            std::cout << "   angle: " << event->angle << std::endl;
+            setPwm(event->angle);
+            event++;
+        }
+
+        if (event == endEvent) {
+            std::cout << "Processed all events." << std::endl;
+            break;
+        }
     }
+}
+
+void setPwm(const int angle)
+{
+#ifdef __arm__
+    gpioPWM(PWM_PIN, ANGLE(angle));
 #else
-    std::cout << "Cannot cycle servo on this platform." << std::endl;
+    UNUSED(angle);
 #endif
 }
