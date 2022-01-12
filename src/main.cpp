@@ -46,7 +46,7 @@ void playTrack()
         format.byte_format = AO_FMT_LITTLE;
         format.matrix = nullptr;
 
-        std::fstream file("test.wav", std::ios::in | std::ios::binary | std::ios::ate);
+        std::fstream file("track.wav", std::ios::in | std::ios::binary | std::ios::ate);
         if (file.is_open()) {
             std::streamsize leftToRead = file.tellg() - headerSize;
             char *buffer = new char[chunkSize];
