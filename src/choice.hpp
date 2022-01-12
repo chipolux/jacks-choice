@@ -20,7 +20,7 @@ const std::vector<ServoEvent> servoEvents = {
     {1972, 180},  // love
     {2442, 0},    // brain
     {2912, 180},  // heart
-    {3304, 0},    // control
+    {3294, 0},    // control
     {3795, 180},  // caffeinate
     {4829, 0},    // melatonin
     {5808, 180},  // love
@@ -41,16 +41,16 @@ const std::vector<ServoEvent> servoEvents = {
     {14387, 0},   // heart
     {15368, 180}, // wake
     {15617, 0},   // up
-    {16078, 180}, // (ss-)
+    {16078, 0},   // (ss-)
     {16343, 0},   // (-mack)
-    {16844, 0},   // end of wiggly bit
+    {16844, 0},   // (end of wiggly bit)
     {17748, 180}, // nice
     {18028, 0},   // to
     {18198, 180}, // meet
     {18484, 0},   // ya
     {19199, 180}, // who
     {19455, 0},   // could
-    {19913, 180}, // you
+    {19613, 180}, // you
     {19970, 0},   // be
     {21159, 180}, // i
     {21615, 0},   // am
@@ -69,10 +69,10 @@ const std::vector<ServoEvent> servoEvents = {
     {28296, 180}, // but
     {28592, 0},   // i
     {28809, 180}, // am
-    {29309, 0},   // no
+    {29389, 0},   // no
     {29637, 180}, // i
     {29896, 0},   // am
-    {30339, 180}, // no
+    {30439, 180}, // no
     {30736, 0},   // do-
     {30927, 180}, // -pa-
     {31044, 0},   // -mine
