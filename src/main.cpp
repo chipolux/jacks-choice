@@ -16,7 +16,7 @@ const std::streampos HEADER_SIZE = 0x2c;
 const std::streamsize CHUNK_SIZE = 1024;
 std::atomic_bool STOP_PLAYING(false);
 
-const unsigned PWM_PIN = 19;
+const unsigned PWM_PIN = 14;
 
 void playTrack();
 
