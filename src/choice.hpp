@@ -20,12 +20,12 @@ const std::vector<ServoEvent> servoEvents = {
     {1972, 180},  // love
     {2442, 0},    // brain
     {2912, 180},  // heart
-    {3164, 0},    // control
+    {3304, 0},    // control
     {3795, 180},  // caffeinate
     {4829, 0},    // melatonin
     {5808, 180},  // love
     {6762, 0},    // heart
-    {7011, 180},  // control
+    {7191, 180},  // control
     {7705, 0},    // caffeinate
     {8456, 180},  // you
     {8679, 0},    // get
@@ -33,7 +33,7 @@ const std::vector<ServoEvent> servoEvents = {
     {9163, 0},    // going
     {10115, 180}, // brain
     {10604, 0},   // heart
-    {10924, 180}, // control
+    {11024, 180}, // control
     {11599, 0},   // caffeinate
     {12518, 180}, // melatonin
     {13518, 0},   // love
