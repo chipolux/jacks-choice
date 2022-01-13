@@ -6,116 +6,160 @@
 #define ANGLE(angle) ((((2300 - 400) / 180) * angle) + 400)
 #define TEMPO_MS 477
 
-#define TOP_LIP 14
-#define TOP_OPEN 165
-#define TOP_CLOSE 180
+// mouth servos, upper and lower lips
+#define MOUTH_UPPER 14
+#define MOUTH_LOWER 15
 
-#define BOT_LIP 15
-#define BOT_OPEN 15
-#define BOT_CLOSE 0
+enum MouthState : unsigned { Closed = 0, Partial = 8, Open = 15 };
 
-struct ServoEvent {
-    const unsigned pin;
+struct MouthEvent {
     const unsigned long ms;
-    const int angle;
+    const MouthState state;
+    const int upperAngle;
+    const int lowerAngle;
     const bool abort;
 
-    ServoEvent(unsigned pin, unsigned long ms, int angle, bool abort = false)
-        : pin(pin)
-        , ms(ms)
-        , angle(angle)
+    MouthEvent(unsigned long ms, MouthState state = MouthState::Closed, bool abort = false)
+        : ms(ms)
+        , state(state)
+        , upperAngle(180 - state)
+        , lowerAngle(0 + state)
         , abort(abort)
     {
     }
 };
 
-const std::vector<ServoEvent> servoEvents = {
-    {TOP_LIP, 0, TOP_CLOSE}, // (start closed)
-    {BOT_LIP, 0, BOT_CLOSE}, // (start closed)
+const std::vector<MouthEvent> mouthEvents = {
+    {0}, // (start closed)
 
-    {TOP_LIP, 1900, TOP_OPEN},  // love (open)
-    {BOT_LIP, 1900, BOT_OPEN},  // love (open)
-    {TOP_LIP, 2100, TOP_CLOSE}, // love (close)
-    {BOT_LIP, 2100, BOT_CLOSE}, // love (close)
+    {1900, MouthState::Open}, // love (open) (200ms)
+    {2100},                   // (close)
 
-    {TOP_LIP, 2400, TOP_OPEN},  // brain (open)
-    {BOT_LIP, 2400, BOT_OPEN},  // brain (open)
-    {TOP_LIP, 2600, TOP_CLOSE}, // brain (close)
-    {BOT_LIP, 2600, BOT_CLOSE}, // brain (close)
+    {2350, MouthState::Open}, // brain (open) (250ms)
+    {2600},                   // (close)
 
-    {TOP_LIP, 2900, TOP_OPEN},  // heart (open)
-    {BOT_LIP, 2900, BOT_OPEN},  // heart (open)
-    {TOP_LIP, 3100, TOP_CLOSE}, // heart (close)
-    {BOT_LIP, 3100, BOT_CLOSE}, // heart (close)
+    {2900, MouthState::Open}, // heart (open) (150ms)
+    {3050},                   // (close)
 
-    {TOP_LIP, 3250, TOP_OPEN},      // control (open)
-    {BOT_LIP, 3250, BOT_OPEN},      // control (open)
-    {TOP_LIP, 3350, TOP_CLOSE - 8}, // control (open)
-    {BOT_LIP, 3350, BOT_CLOSE + 8}, // control (open)
-    {TOP_LIP, 3500, TOP_OPEN},      // control (open)
-    {BOT_LIP, 3500, BOT_OPEN},      // control (open)
-    {TOP_LIP, 3750, TOP_CLOSE},     // control (close)
-    {BOT_LIP, 3750, BOT_CLOSE},     // control (close)
+    {3250, MouthState::Open},    // con- (open)
+    {3300, MouthState::Partial}, // -tr- (partial)
+    {3500, MouthState::Open},    // -o- (open)
+    {3700},                      // -l (close)
 
-    {TOP_LIP, 3795, TOP_OPEN},   // caffeinate
-    {TOP_LIP, 4829, TOP_CLOSE},  // melatonin
-    {TOP_LIP, 5808, TOP_OPEN},   // love
-    {TOP_LIP, 6762, TOP_CLOSE},  // heart
-    {TOP_LIP, 7191, TOP_OPEN},   // control
-    {TOP_LIP, 7705, TOP_CLOSE},  // caffeinate
-    {TOP_LIP, 8456, TOP_OPEN},   // you
-    {TOP_LIP, 8679, TOP_CLOSE},  // get
-    {TOP_LIP, 8919, TOP_OPEN},   // me
-    {TOP_LIP, 9163, TOP_CLOSE},  // going
-    {TOP_LIP, 10115, TOP_OPEN},  // brain
-    {TOP_LIP, 10604, TOP_CLOSE}, // heart
-    {TOP_LIP, 11024, TOP_OPEN},  // control
-    {TOP_LIP, 11599, TOP_CLOSE}, // caffeinate
-    {TOP_LIP, 12518, TOP_OPEN},  // melatonin
-    {TOP_LIP, 13518, TOP_CLOSE}, // love
-    {TOP_LIP, 13948, TOP_OPEN},  // brain
-    {TOP_LIP, 14387, TOP_CLOSE}, // heart
-    {TOP_LIP, 15368, TOP_OPEN},  // wake
-    {TOP_LIP, 15617, TOP_CLOSE}, // up
-    {TOP_LIP, 16078, TOP_CLOSE}, // (ss-)
-    {TOP_LIP, 16343, TOP_CLOSE}, // (-mack)
-    {TOP_LIP, 16844, TOP_CLOSE}, // (end of wiggly bit)
-    {TOP_LIP, 17748, TOP_OPEN},  // nice
-    {TOP_LIP, 18028, TOP_CLOSE}, // to
-    {TOP_LIP, 18198, TOP_OPEN},  // meet
-    {TOP_LIP, 18484, TOP_CLOSE}, // ya
-    {TOP_LIP, 19199, TOP_OPEN},  // who
-    {TOP_LIP, 19455, TOP_CLOSE}, // could
-    {TOP_LIP, 19613, TOP_OPEN},  // you
-    {TOP_LIP, 19970, TOP_CLOSE}, // be
-    {TOP_LIP, 21159, TOP_OPEN},  // i
-    {TOP_LIP, 21615, TOP_CLOSE}, // am
-    {TOP_LIP, 22101, TOP_OPEN},  // in-
-    {TOP_LIP, 22514, TOP_CLOSE}, // -jur-
-    {TOP_LIP, 22841, TOP_OPEN},  // -y
-    {TOP_LIP, 24487, TOP_CLOSE}, // no
-    {TOP_LIP, 24685, TOP_OPEN},  // you
-    {TOP_LIP, 24982, TOP_CLOSE}, // aren't
-    {TOP_LIP, 25695, TOP_OPEN},  // you
-    {TOP_LIP, 25924, TOP_CLOSE}, // made
-    {TOP_LIP, 26428, TOP_OPEN},  // the
-    {TOP_LIP, 26878, TOP_CLOSE}, // choice
-    {TOP_LIP, 27373, TOP_OPEN},  // to
-    {TOP_LIP, 27647, TOP_CLOSE}, // be
-    {TOP_LIP, 28296, TOP_OPEN},  // but
-    {TOP_LIP, 28592, TOP_CLOSE}, // i
-    {TOP_LIP, 28809, TOP_OPEN},  // am
-    {TOP_LIP, 29389, TOP_CLOSE}, // no
-    {TOP_LIP, 29637, TOP_OPEN},  // i
-    {TOP_LIP, 29896, TOP_CLOSE}, // am
-    {TOP_LIP, 30439, TOP_OPEN},  // no
-    {TOP_LIP, 30736, TOP_CLOSE}, // do-
-    {TOP_LIP, 30927, TOP_OPEN},  // -pa-
-    {TOP_LIP, 31044, TOP_CLOSE}, // -mine
-    {TOP_LIP, 31569, TOP_OPEN},  // eh--
+    {3795, MouthState::Open},    // ca- (open)
+    {3845, MouthState::Partial}, // -ff- (partial)
+    {3995, MouthState::Open},    // -ei- (open)
+    {4100, MouthState::Partial}, // -n- (partial)
+    {4200, MouthState::Open},    // -a- (open)
+    {4400},                      // -te (close)
 
-    {TOP_LIP, 0, TOP_CLOSE}, // (end closed)
-    {BOT_LIP, 0, BOT_CLOSE}, // (end closed)
+    {4829, MouthState::Open},    // mel- (open)
+    {5060, MouthState::Partial}, // -a- (partial)
+    {5320, MouthState::Open},    // -ton- (open)
+    {5600},                      // -in (close)
+
+    {5808, MouthState::Open}, // love (open)
+    {6000},                   // (close)
+
+    {6762, MouthState::Open}, // heart (open)
+    {6900},                   // (close)
+
+    {7191, MouthState::Partial}, // con- (partial)
+    {7280, MouthState::Open},    // -tro- (open)
+    {7400},                      // -l (close)
+
+    {7705, MouthState::Open},    // ca- (open)
+    {7755, MouthState::Partial}, // -ff- (partial)
+    {7905, MouthState::Open},    // -ei- (open)
+    {8100, MouthState::Partial}, // -n- (partial)
+    {8150, MouthState::Open},    // -a- (open)
+    {8350},                      // -te (close)
+
+    {8440, MouthState::Open}, // you (open)
+    {8540},                   // (close)
+
+    {8670, MouthState::Open}, // get (open)
+    {8740},                   // (close)
+
+    {8919, MouthState::Open}, // me (open)
+    {9000},                   // (close)
+
+    {9163, MouthState::Open}, // going (open)
+    {9363},                   // (close)
+
+    {10115, MouthState::Open}, // brain (open)
+    {10365},                   // (close)
+
+    {10604, MouthState::Open}, // heart (open)
+    {10854},                   // (close)
+
+    {11030, MouthState::Partial}, // con- (partial)
+    {11120, MouthState::Open},    // -tro- (open)
+    {11240},                      // -l (close)
+
+    {11599, MouthState::Open},    // ca- (open) (50ms)
+    {11650, MouthState::Partial}, // -ff- (partial) (150ms)
+    {11800, MouthState::Open},    // -ei- (open) (105ms)
+    {11905, MouthState::Partial}, // -n- (partial) (100ms)
+    {12005, MouthState::Open},    // -a- (open) (200ms)
+    {12205},                      // -te (close)
+
+    {12518, MouthState::Open},    // mel- (open) (230ms)
+    {12750, MouthState::Partial}, // -a- (partial) (260ms)
+    {13010, MouthState::Open},    // -ton- (open) (280ms)
+    {13290},                      // -in (close)
+
+    {13518, MouthState::Open}, // love (open) (200ms)
+    {13720},                   // (close)
+
+    {13948, MouthState::Open}, // brain (open) (250ms)
+    {14200},                   // (close)
+
+    {14387, MouthState::Open}, // heart (open) (150ms)
+    {14530},                   // (close)
+
+    {15368, MouthState::Open}, // wake (open)
+    {15440},                   // (close)
+
+    {15617, MouthState::Open}, // up (open)
+    {15700},                   // (close)
+
+    {16078}, // (ss-)
+    {16343}, // (-mack)
+    {16844}, // (end of wiggly bit)
+    {17748}, // nice
+    {18028}, // to
+    {18198}, // meet
+    {18484}, // ya
+    {19199}, // who
+    {19455}, // could
+    {19613}, // you
+    {19970}, // be
+    {21159}, // i
+    {21615}, // am
+    {22101}, // in-
+    {22514}, // -jur-
+    {22841}, // -y
+    {24487}, // no
+    {24685}, // you
+    {24982}, // aren't
+    {25695}, // you
+    {25924}, // made
+    {26428}, // the
+    {26878}, // choice
+    {27373}, // to
+    {27647}, // be
+    {28296}, // but
+    {28592}, // i
+    {28809}, // am
+    {29389}, // no
+    {29637}, // i
+    {29896}, // am
+    {30439}, // no
+    {30736}, // do-
+    {30927}, // -pa-
+    {31044}, // -mine
+    {31569}, // eh--
 };
 
 #endif

@@ -29,7 +29,7 @@ bool initSubsystems();
 bool initPwm(const unsigned pin);
 void shutdownSubsystems();
 void playTrack();
-void cycleServo();
+void processMouthEvents();
 void setPwm(const unsigned pin, const int angle);
 
 int main(void)
@@ -42,11 +42,11 @@ int main(void)
     std::cout << "Starting audio thread!" << std::endl;
     std::thread audioThread(playTrack);
 
-    std::cout << "Starting servo thread!" << std::endl;
-    std::thread servoThread(cycleServo);
+    std::cout << "Starting mouth thread!" << std::endl;
+    std::thread mouthThread(processMouthEvents);
 
     audioThread.join();
-    servoThread.join();
+    mouthThread.join();
 
     shutdownSubsystems();
     return 0;
@@ -78,7 +78,7 @@ bool initSubsystems()
         std::cout << "[ERROR] Failed to initialize GPIO." << std::endl;
         return false;
     }
-    if (!initPwm(TOP_LIP) || !initPwm(BOT_LIP)) {
+    if (!initPwm(MOUTH_UPPER) || !initPwm(MOUTH_LOWER)) {
         std::cout << "[ERROR] Failed to initialize PWM." << std::endl;
         return false;
     }
@@ -140,11 +140,11 @@ void playTrack()
     stopPlaying = true;
 }
 
-void cycleServo()
+void processMouthEvents()
 {
-    std::cout << "Total events: " << servoEvents.size() << std::endl;
-    auto event = servoEvents.cbegin();
-    auto endEvent = servoEvents.cend();
+    std::cout << "Total events: " << mouthEvents.size() << std::endl;
+    auto event = mouthEvents.cbegin();
+    auto endEvent = mouthEvents.cend();
     auto startTime = std::chrono::system_clock::now();
     while (!stopPlaying.load() && event != endEvent) {
         auto now = std::chrono::system_clock::now();
@@ -153,10 +153,10 @@ void cycleServo()
 
         if (ms >= event->ms) {
             std::cout << "Handling event, off by " << ms - event->ms << std::endl;
-            std::cout << "   pin:   " << event->pin << std::endl;
             std::cout << "   ms:    " << event->ms << std::endl;
-            std::cout << "   angle: " << event->angle << std::endl;
-            setPwm(event->pin, event->angle);
+            std::cout << "   state: " << event->state << std::endl;
+            setPwm(MOUTH_UPPER, event->upperAngle);
+            setPwm(MOUTH_LOWER, event->lowerAngle);
             if (event->abort) {
                 break;
             }
