@@ -10,12 +10,9 @@
 #define UNUSED(expr) (void)(expr)
 
 // servos run from 400us to 2300us for 180 degrees
-#define ANGLE(angle) ((((2300 - 400) / 180) * angle) + 400)
 
 #ifdef __arm__
 #include <pigpio.h>
-
-const unsigned PWM_PIN = 14;
 #endif
 
 // wav file always has a 44 byte header
@@ -29,10 +26,11 @@ ao_sample_format audioFormat;
 ao_device *audioDevice = nullptr;
 
 bool initSubsystems();
+bool initPwm(const unsigned pin);
 void shutdownSubsystems();
 void playTrack();
 void cycleServo();
-void setPwm(const int angle);
+void setPwm(const unsigned pin, const int angle);
 
 int main(void)
 {
@@ -80,21 +78,31 @@ bool initSubsystems()
         std::cout << "[ERROR] Failed to initialize GPIO." << std::endl;
         return false;
     }
-    if (gpioSetMode(PWM_PIN, PI_OUTPUT) != 0) {
-        std::cout << "[ERROR] Failed to set pin mode." << std::endl;
-        return false;
-    }
-    if (gpioSetPWMfrequency(PWM_PIN, 50) == PI_BAD_USER_GPIO) {
-        std::cout << "[ERROR] Failed to set PWM frequency." << std::endl;
-        return false;
-    }
-    int pwmRange = gpioSetPWMrange(PWM_PIN, 1e6 / 50);
-    if (pwmRange == PI_BAD_USER_GPIO || pwmRange == PI_BAD_DUTYRANGE) {
-        std::cout << "[ERROR] Failed to set PWM range." << std::endl;
+    if (!initPwm(TOP_LIP) || !initPwm(BOT_LIP)) {
+        std::cout << "[ERROR] Failed to initialize PWM." << std::endl;
         return false;
     }
 #endif
 
+    return true;
+}
+
+bool initPwm(const unsigned pin)
+{
+#ifdef __arm__
+    if (gpioSetMode(pin, PI_OUTPUT) != 0) {
+        return false;
+    }
+    if (gpioSetPWMfrequency(pin, 50) == PI_BAD_USER_GPIO) {
+        return false;
+    }
+    int pwmRange = gpioSetPWMrange(pin, 1e6 / 50);
+    if (pwmRange == PI_BAD_USER_GPIO || pwmRange == PI_BAD_DUTYRANGE) {
+        return false;
+    }
+#else
+    UNUSED(pin);
+#endif
     return true;
 }
 
@@ -128,6 +136,7 @@ void playTrack()
     } else {
         std::cout << "[ERROR] Failed to open audio file." << std::endl;
     }
+    std::cout << "Finished playing track." << std::endl;
     stopPlaying = true;
 }
 
@@ -137,31 +146,37 @@ void cycleServo()
     auto event = servoEvents.cbegin();
     auto endEvent = servoEvents.cend();
     auto startTime = std::chrono::system_clock::now();
-    while (!stopPlaying.load()) {
+    while (!stopPlaying.load() && event != endEvent) {
         auto now = std::chrono::system_clock::now();
         const unsigned long ms =
             std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime).count();
 
         if (ms >= event->ms) {
             std::cout << "Handling event, off by " << ms - event->ms << std::endl;
+            std::cout << "   pin:   " << event->pin << std::endl;
             std::cout << "   ms:    " << event->ms << std::endl;
             std::cout << "   angle: " << event->angle << std::endl;
-            setPwm(event->angle);
+            setPwm(event->pin, event->angle);
+            if (event->abort) {
+                break;
+            }
             event++;
         }
-
-        if (event == endEvent) {
-            std::cout << "Processed all events." << std::endl;
-            break;
-        }
+    }
+    if (event->abort) {
+        std::cout << "Aborting event processing." << std::endl;
+        stopPlaying = true;
+    } else {
+        std::cout << "Processed all events." << std::endl;
     }
 }
 
-void setPwm(const int angle)
+void setPwm(const unsigned pin, const int angle)
 {
 #ifdef __arm__
-    gpioPWM(PWM_PIN, ANGLE(angle));
+    gpioPWM(pin, ANGLE(angle));
 #else
+    UNUSED(pin);
     UNUSED(angle);
 #endif
 }
