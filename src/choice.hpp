@@ -6,9 +6,10 @@
 #define ANGLE(angle) ((((2300 - 400) / 180) * angle) + 400)
 #define TEMPO_MS 477
 
-// mouth servos, upper and lower lips
+// servo pins
 #define MOUTH_UPPER 14
 #define MOUTH_LOWER 15
+#define NECK 18
 
 enum MouthState : unsigned { Closed = 0, Partial = 8, Open = 15 };
 
@@ -24,6 +25,19 @@ struct MouthEvent {
         , state(state)
         , upperAngle(180 - state)
         , lowerAngle(0 + state)
+        , abort(abort)
+    {
+    }
+};
+
+struct NeckEvent {
+    const unsigned long ms;
+    const int angle;
+    const bool abort;
+
+    NeckEvent(unsigned long ms, int angle = 90, bool abort = false)
+        : ms(ms)
+        , angle(angle)
         , abort(abort)
     {
     }
@@ -160,6 +174,11 @@ const std::vector<MouthEvent> mouthEvents = {
     {30927}, // -pa-
     {31044}, // -mine
     {31569}, // eh--
+};
+
+// about +-40 degrees is max angle, + is left, - is right
+const std::vector<NeckEvent> neckEvents = {
+    {0}, // (start forward)
 };
 
 #endif

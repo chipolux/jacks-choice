@@ -30,6 +30,7 @@ bool initPwm(const unsigned pin);
 void shutdownSubsystems();
 void playTrack();
 void processMouthEvents();
+void processNeckEvents();
 void setPwm(const unsigned pin, const int angle);
 
 int main(void)
@@ -45,8 +46,12 @@ int main(void)
     std::cout << "Starting mouth thread!" << std::endl;
     std::thread mouthThread(processMouthEvents);
 
+    std::cout << "Starting neck thread!" << std::endl;
+    std::thread neckThread(processNeckEvents);
+
     audioThread.join();
     mouthThread.join();
+    neckThread.join();
 
     shutdownSubsystems();
     return 0;
@@ -78,7 +83,7 @@ bool initSubsystems()
         std::cout << "[ERROR] Failed to initialize GPIO." << std::endl;
         return false;
     }
-    if (!initPwm(MOUTH_UPPER) || !initPwm(MOUTH_LOWER)) {
+    if (!initPwm(MOUTH_UPPER) || !initPwm(MOUTH_LOWER) || !initPwm(NECK)) {
         std::cout << "[ERROR] Failed to initialize PWM." << std::endl;
         return false;
     }
@@ -142,7 +147,7 @@ void playTrack()
 
 void processMouthEvents()
 {
-    std::cout << "Total events: " << mouthEvents.size() << std::endl;
+    std::cout << "Total mouth events: " << mouthEvents.size() << std::endl;
     auto event = mouthEvents.cbegin();
     auto endEvent = mouthEvents.cend();
     auto startTime = std::chrono::system_clock::now();
@@ -152,11 +157,43 @@ void processMouthEvents()
             std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime).count();
 
         if (ms >= event->ms) {
-            std::cout << "Handling event, off by " << ms - event->ms << std::endl;
-            std::cout << "   ms:    " << event->ms << std::endl;
-            std::cout << "   state: " << event->state << std::endl;
+            const unsigned long deviation = ms - event->ms;
+            if (deviation != 0) {
+                std::cout << "Handling mouth event, off by " << deviation << std::endl;
+            }
             setPwm(MOUTH_UPPER, event->upperAngle);
             setPwm(MOUTH_LOWER, event->lowerAngle);
+            if (event->abort) {
+                break;
+            }
+            event++;
+        }
+    }
+    if (event->abort) {
+        std::cout << "Aborting event processing." << std::endl;
+        stopPlaying = true;
+    } else {
+        std::cout << "Processed all events." << std::endl;
+    }
+}
+
+void processNeckEvents()
+{
+    std::cout << "Total neck events: " << neckEvents.size() << std::endl;
+    auto event = neckEvents.cbegin();
+    auto endEvent = neckEvents.cend();
+    auto startTime = std::chrono::system_clock::now();
+    while (!stopPlaying.load() && event != endEvent) {
+        auto now = std::chrono::system_clock::now();
+        const unsigned long ms =
+            std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime).count();
+
+        if (ms >= event->ms) {
+            const unsigned long deviation = ms - event->ms;
+            if (deviation != 0) {
+                std::cout << "Handling neck event, off by " << deviation << std::endl;
+            }
+            setPwm(NECK, event->angle);
             if (event->abort) {
                 break;
             }
