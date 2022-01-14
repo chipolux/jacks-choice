@@ -147,7 +147,6 @@ void playTrack()
 
 void processMouthEvents()
 {
-    std::cout << "Total mouth events: " << mouthEvents.size() << std::endl;
     auto event = mouthEvents.cbegin();
     auto endEvent = mouthEvents.cend();
     auto startTime = std::chrono::system_clock::now();
@@ -179,7 +178,6 @@ void processMouthEvents()
 
 void processNeckEvents()
 {
-    std::cout << "Total neck events: " << neckEvents.size() << std::endl;
     auto event = neckEvents.cbegin();
     auto endEvent = neckEvents.cend();
     auto startTime = std::chrono::system_clock::now();
