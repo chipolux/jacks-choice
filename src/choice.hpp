@@ -178,7 +178,13 @@ const std::vector<MouthEvent> mouthEvents = {
 
 // about +-40 degrees is max angle, + is left, - is right
 const std::vector<NeckEvent> neckEvents = {
-    {0}, // (start forward)
+    {0},              // (start forward)
+    {1850, 90 + 15},  // love
+    {2300, 90 - 18},  // brain
+    {2850, 90 + 20},  // heart
+    {3200},           // control
+    {16343, 90 - 50}, // (-mack)
+    {18000},
 };
 
 #endif
