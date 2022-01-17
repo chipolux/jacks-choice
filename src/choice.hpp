@@ -3,188 +3,214 @@
 
 #include <vector>
 
-#define ANGLE(angle) ((((2300 - 400) / 180) * angle) + 400)
+#include "gpio.hpp"
+
 #define TEMPO_MS 477
 
-// servo pins
+// pinout
 #define MOUTH_UPPER 14
 #define MOUTH_LOWER 15
 #define NECK 18
+#define BRAIN_WIRE 23
 
-enum MouthState : unsigned { Closed = 0, Partial = 8, Open = 15 };
+// common angles
+#define MOUTH_PARTIAL 8
+#define MOUTH_OPEN 15
 
-struct MouthEvent {
-    const unsigned long ms;
-    const MouthState state;
-    const int upperAngle;
-    const int lowerAngle;
-    const bool abort;
+const std::vector<unsigned> PWM_PINS = {MOUTH_UPPER, MOUTH_LOWER, NECK};
+const std::vector<unsigned> IO_PINS = {BRAIN_WIRE};
 
-    MouthEvent(unsigned long ms, MouthState state = MouthState::Closed, bool abort = false)
-        : ms(ms)
-        , state(state)
-        , upperAngle(180 - state)
-        , lowerAngle(0 + state)
+class Event
+{
+  public:
+    enum Type {
+        None,
+        Mouth,
+        Neck,
+        Brain,
+    };
+
+    Event(Type type, unsigned long ms = 0, int value = 0, bool abort = false)
+        : type(type)
+        , ms(ms)
+        , value(value)
         , abort(abort)
     {
     }
-};
 
-struct NeckEvent {
-    const unsigned long ms;
-    const int angle;
-    const bool abort;
-
-    NeckEvent(unsigned long ms, int angle = 90, bool abort = false)
-        : ms(ms)
-        , angle(angle)
-        , abort(abort)
+    void run() const
     {
+        switch (type) {
+        case None:
+            break;
+        case Mouth: {
+            gpio::setServo(MOUTH_UPPER, 180 - value);
+            gpio::setServo(MOUTH_LOWER, 0 + value);
+            break;
+        };
+        case Neck: {
+            gpio::setServo(NECK, 90 + value);
+            break;
+        };
+        case Brain: {
+            gpio::setIo(BRAIN_WIRE, value > 0 ? true : false);
+            break;
+        };
+        }
     }
+
+    const Type type;
+    const unsigned long ms;
+    const int value;
+    const bool abort;
 };
 
-const std::vector<MouthEvent> mouthEvents = {
-    {0}, // (start closed)
+std::vector<Event> EVENTS{
+    // start with neck forward, mouth closed, and brain off
+    {Event::Neck, 0},
+    {Event::Mouth, 0},
+    {Event::Brain, 0},
 
-    {1900, MouthState::Open}, // love (open) (200ms)
-    {2100},                   // (close)
+    {Event::Neck, 1850, 15},
+    {Event::Mouth, 1900, MOUTH_OPEN}, // love (open) (200ms)
+    {Event::Mouth, 2100},
 
-    {2350, MouthState::Open}, // brain (open) (250ms)
-    {2600},                   // (close)
+    {Event::Neck, 2300, -18},
+    {Event::Brain, 2350, 1},
+    {Event::Mouth, 2350, MOUTH_OPEN}, // brain (open) (250ms)
+    {Event::Mouth, 2600},
+    {Event::Brain, 2800},
 
-    {2900, MouthState::Open}, // heart (open) (150ms)
-    {3050},                   // (close)
+    {Event::Neck, 2850, 20},
+    {Event::Mouth, 2900, MOUTH_OPEN}, // heart (open) (150ms)
+    {Event::Mouth, 3050},
 
-    {3250, MouthState::Open},    // con- (open)
-    {3300, MouthState::Partial}, // -tr- (partial)
-    {3500, MouthState::Open},    // -o- (open)
-    {3700},                      // -l (close)
+    {Event::Neck, 3200},
+    {Event::Mouth, 3250, MOUTH_OPEN},    // con- (open)
+    {Event::Mouth, 3300, MOUTH_PARTIAL}, // -tr- (partial)
+    {Event::Mouth, 3500, MOUTH_OPEN},    // -o- (open)
+    {Event::Mouth, 3700},                // -l (close)
 
-    {3795, MouthState::Open},    // ca- (open)
-    {3845, MouthState::Partial}, // -ff- (partial)
-    {3995, MouthState::Open},    // -ei- (open)
-    {4100, MouthState::Partial}, // -n- (partial)
-    {4200, MouthState::Open},    // -a- (open)
-    {4400},                      // -te (close)
+    {Event::Mouth, 3795, MOUTH_OPEN},    // ca- (open)
+    {Event::Mouth, 3845, MOUTH_PARTIAL}, // -ff- (partial)
+    {Event::Mouth, 3995, MOUTH_OPEN},    // -ei- (open)
+    {Event::Mouth, 4100, MOUTH_PARTIAL}, // -n- (partial)
+    {Event::Mouth, 4200, MOUTH_OPEN},    // -a- (open)
+    {Event::Mouth, 4400},                // -te (close)
 
-    {4829, MouthState::Open},    // mel- (open)
-    {5060, MouthState::Partial}, // -a- (partial)
-    {5320, MouthState::Open},    // -ton- (open)
-    {5600},                      // -in (close)
+    {Event::Mouth, 4829, MOUTH_OPEN},    // mel- (open)
+    {Event::Mouth, 5060, MOUTH_PARTIAL}, // -a- (partial)
+    {Event::Mouth, 5320, MOUTH_OPEN},    // -ton- (open)
+    {Event::Mouth, 5600},                // -in (close)
 
-    {5808, MouthState::Open}, // love (open)
-    {6000},                   // (close)
+    {Event::Mouth, 5808, MOUTH_OPEN}, // love (open)
+    {Event::Mouth, 6000},
 
-    {6762, MouthState::Open}, // heart (open)
-    {6900},                   // (close)
+    {Event::Mouth, 6762, MOUTH_OPEN}, // heart (open)
+    {Event::Mouth, 6900},
 
-    {7191, MouthState::Partial}, // con- (partial)
-    {7280, MouthState::Open},    // -tro- (open)
-    {7400},                      // -l (close)
+    {Event::Mouth, 7191, MOUTH_PARTIAL}, // con- (partial)
+    {Event::Mouth, 7280, MOUTH_OPEN},    // -tro- (open)
+    {Event::Mouth, 7400},                // -l (close)
 
-    {7705, MouthState::Open},    // ca- (open)
-    {7755, MouthState::Partial}, // -ff- (partial)
-    {7905, MouthState::Open},    // -ei- (open)
-    {8100, MouthState::Partial}, // -n- (partial)
-    {8150, MouthState::Open},    // -a- (open)
-    {8350},                      // -te (close)
+    {Event::Mouth, 7705, MOUTH_OPEN},    // ca- (open)
+    {Event::Mouth, 7755, MOUTH_PARTIAL}, // -ff- (partial)
+    {Event::Mouth, 7905, MOUTH_OPEN},    // -ei- (open)
+    {Event::Mouth, 8100, MOUTH_PARTIAL}, // -n- (partial)
+    {Event::Mouth, 8150, MOUTH_OPEN},    // -a- (open)
+    {Event::Mouth, 8350},                // -te (close)
 
-    {8440, MouthState::Open}, // you (open)
-    {8540},                   // (close)
+    {Event::Mouth, 8440, MOUTH_OPEN}, // you (open)
+    {Event::Mouth, 8540},
 
-    {8670, MouthState::Open}, // get (open)
-    {8740},                   // (close)
+    {Event::Mouth, 8670, MOUTH_OPEN}, // get (open)
+    {Event::Mouth, 8740},
 
-    {8919, MouthState::Open}, // me (open)
-    {9000},                   // (close)
+    {Event::Mouth, 8919, MOUTH_OPEN}, // me (open)
+    {Event::Mouth, 9000},
 
-    {9163, MouthState::Open}, // going (open)
-    {9363},                   // (close)
+    {Event::Mouth, 9163, MOUTH_OPEN}, // going (open)
+    {Event::Mouth, 9363},
 
-    {10115, MouthState::Open}, // brain (open)
-    {10365},                   // (close)
+    {Event::Brain, 10115, 1},
+    {Event::Mouth, 10115, MOUTH_OPEN}, // brain (open)
+    {Event::Mouth, 10365},
+    {Event::Brain, 10600},
 
-    {10604, MouthState::Open}, // heart (open)
-    {10854},                   // (close)
+    {Event::Mouth, 10604, MOUTH_OPEN}, // heart (open)
+    {Event::Mouth, 10854},
 
-    {11030, MouthState::Partial}, // con- (partial)
-    {11120, MouthState::Open},    // -tro- (open)
-    {11240},                      // -l (close)
+    {Event::Mouth, 11030, MOUTH_PARTIAL}, // con- (partial)
+    {Event::Mouth, 11120, MOUTH_OPEN},    // -tro- (open)
+    {Event::Mouth, 11240},                // -l (close)
 
-    {11599, MouthState::Open},    // ca- (open) (50ms)
-    {11650, MouthState::Partial}, // -ff- (partial) (150ms)
-    {11800, MouthState::Open},    // -ei- (open) (105ms)
-    {11905, MouthState::Partial}, // -n- (partial) (100ms)
-    {12005, MouthState::Open},    // -a- (open) (200ms)
-    {12205},                      // -te (close)
+    {Event::Mouth, 11599, MOUTH_OPEN},    // ca- (open) (50ms)
+    {Event::Mouth, 11650, MOUTH_PARTIAL}, // -ff- (partial) (150ms)
+    {Event::Mouth, 11800, MOUTH_OPEN},    // -ei- (open) (105ms)
+    {Event::Mouth, 11905, MOUTH_PARTIAL}, // -n- (partial) (100ms)
+    {Event::Mouth, 12005, MOUTH_OPEN},    // -a- (open) (200ms)
+    {Event::Mouth, 12205},                // -te (close)
 
-    {12518, MouthState::Open},    // mel- (open) (230ms)
-    {12750, MouthState::Partial}, // -a- (partial) (260ms)
-    {13010, MouthState::Open},    // -ton- (open) (280ms)
-    {13290},                      // -in (close)
+    {Event::Mouth, 12518, MOUTH_OPEN},    // mel- (open) (230ms)
+    {Event::Mouth, 12750, MOUTH_PARTIAL}, // -a- (partial) (260ms)
+    {Event::Mouth, 13010, MOUTH_OPEN},    // -ton- (open) (280ms)
+    {Event::Mouth, 13290},                // -in (close)
 
-    {13518, MouthState::Open}, // love (open) (200ms)
-    {13720},                   // (close)
+    {Event::Mouth, 13518, MOUTH_OPEN}, // love (open) (200ms)
+    {Event::Mouth, 13720},
 
-    {13948, MouthState::Open}, // brain (open) (250ms)
-    {14200},                   // (close)
+    {Event::Brain, 13948, 1},
+    {Event::Mouth, 13948, MOUTH_OPEN}, // brain (open) (250ms)
+    {Event::Mouth, 14200},
+    {Event::Brain, 14350},
 
-    {14387, MouthState::Open}, // heart (open) (150ms)
-    {14530},                   // (close)
+    {Event::Mouth, 14387, MOUTH_OPEN}, // heart (open) (150ms)
+    {Event::Mouth, 14530},
 
-    {15368, MouthState::Open}, // wake (open)
-    {15440},                   // (close)
+    {Event::Mouth, 15368, MOUTH_OPEN}, // wake (open)
+    {Event::Mouth, 15440},
 
-    {15617, MouthState::Open}, // up (open)
-    {15700},                   // (close)
+    {Event::Mouth, 15617, MOUTH_OPEN}, // up (open)
+    {Event::Mouth, 15700},
 
-    {16078}, // (ss-)
-    {16343}, // (-mack)
-    {16844}, // (end of wiggly bit)
-    {17748}, // nice
-    {18028}, // to
-    {18198}, // meet
-    {18484}, // ya
-    {19199}, // who
-    {19455}, // could
-    {19613}, // you
-    {19970}, // be
-    {21159}, // i
-    {21615}, // am
-    {22101}, // in-
-    {22514}, // -jur-
-    {22841}, // -y
-    {24487}, // no
-    {24685}, // you
-    {24982}, // aren't
-    {25695}, // you
-    {25924}, // made
-    {26428}, // the
-    {26878}, // choice
-    {27373}, // to
-    {27647}, // be
-    {28296}, // but
-    {28592}, // i
-    {28809}, // am
-    {29389}, // no
-    {29637}, // i
-    {29896}, // am
-    {30439}, // no
-    {30736}, // do-
-    {30927}, // -pa-
-    {31044}, // -mine
-    {31569}, // eh--
-};
-
-// about +-40 degrees is max angle, + is left, - is right
-const std::vector<NeckEvent> neckEvents = {
-    {0},              // (start forward)
-    {1850, 90 + 15},  // love
-    {2300, 90 - 18},  // brain
-    {2850, 90 + 20},  // heart
-    {3200},           // control
-    {16343, 90 - 50}, // (-mack)
-    {18000},
+    {Event::Mouth, 16078},     // (ss-)
+    {Event::Neck, 16343, -50}, // (-mack)
+    {Event::Mouth, 16343},     // (-mack)
+    {Event::Neck, 16844},
+    {Event::Mouth, 16844}, // (end of wiggly bit)
+    {Event::Mouth, 17748}, // nice
+    {Event::Mouth, 18028}, // to
+    {Event::Mouth, 18198}, // meet
+    {Event::Mouth, 18484}, // ya
+    {Event::Mouth, 19199}, // who
+    {Event::Mouth, 19455}, // could
+    {Event::Mouth, 19613}, // you
+    {Event::Mouth, 19970}, // be
+    {Event::Mouth, 21159}, // i
+    {Event::Mouth, 21615}, // am
+    {Event::Mouth, 22101}, // in-
+    {Event::Mouth, 22514}, // -jur-
+    {Event::Mouth, 22841}, // -y
+    {Event::Mouth, 24487}, // no
+    {Event::Mouth, 24685}, // you
+    {Event::Mouth, 24982}, // aren't
+    {Event::Mouth, 25695}, // you
+    {Event::Mouth, 25924}, // made
+    {Event::Mouth, 26428}, // the
+    {Event::Mouth, 26878}, // choice
+    {Event::Mouth, 27373}, // to
+    {Event::Mouth, 27647}, // be
+    {Event::Mouth, 28296}, // but
+    {Event::Mouth, 28592}, // i
+    {Event::Mouth, 28809}, // am
+    {Event::Mouth, 29389}, // no
+    {Event::Mouth, 29637}, // i
+    {Event::Mouth, 29896}, // am
+    {Event::Mouth, 30439}, // no
+    {Event::Mouth, 30736}, // do-
+    {Event::Mouth, 30927}, // -pa-
+    {Event::Mouth, 31044}, // -mine
+    {Event::Mouth, 31569}, // eh--
 };
 
 #endif

@@ -6,14 +6,7 @@
 #include <thread>
 
 #include "choice.hpp"
-
-#define UNUSED(expr) (void)(expr)
-
-// servos run from 400us to 2300us for 180 degrees
-
-#ifdef __arm__
-#include <pigpio.h>
-#endif
+#include "gpio.hpp"
 
 // wav file always has a 44 byte header
 // and we will read and play 1024 byte chunks at a time
@@ -26,12 +19,9 @@ ao_sample_format audioFormat;
 ao_device *audioDevice = nullptr;
 
 bool initSubsystems();
-bool initPwm(const unsigned pin);
 void shutdownSubsystems();
 void playTrack();
-void processMouthEvents();
-void processNeckEvents();
-void setPwm(const unsigned pin, const int angle);
+void processEvents();
 
 int main(void)
 {
@@ -43,15 +33,11 @@ int main(void)
     std::cout << "Starting audio thread!" << std::endl;
     std::thread audioThread(playTrack);
 
-    std::cout << "Starting mouth thread!" << std::endl;
-    std::thread mouthThread(processMouthEvents);
-
-    std::cout << "Starting neck thread!" << std::endl;
-    std::thread neckThread(processNeckEvents);
+    std::cout << "Starting event thread!" << std::endl;
+    std::thread eventThread(processEvents);
 
     audioThread.join();
-    mouthThread.join();
-    neckThread.join();
+    eventThread.join();
 
     shutdownSubsystems();
     return 0;
@@ -78,36 +64,10 @@ bool initSubsystems()
         return false;
     }
 
-#ifdef __arm__
-    if (gpioInitialise() == PI_INIT_FAILED) {
+    if (!gpio::init(PWM_PINS, IO_PINS)) {
         std::cout << "[ERROR] Failed to initialize GPIO." << std::endl;
-        return false;
     }
-    if (!initPwm(MOUTH_UPPER) || !initPwm(MOUTH_LOWER) || !initPwm(NECK)) {
-        std::cout << "[ERROR] Failed to initialize PWM." << std::endl;
-        return false;
-    }
-#endif
 
-    return true;
-}
-
-bool initPwm(const unsigned pin)
-{
-#ifdef __arm__
-    if (gpioSetMode(pin, PI_OUTPUT) != 0) {
-        return false;
-    }
-    if (gpioSetPWMfrequency(pin, 50) == PI_BAD_USER_GPIO) {
-        return false;
-    }
-    int pwmRange = gpioSetPWMrange(pin, 1e6 / 50);
-    if (pwmRange == PI_BAD_USER_GPIO || pwmRange == PI_BAD_DUTYRANGE) {
-        return false;
-    }
-#else
-    UNUSED(pin);
-#endif
     return true;
 }
 
@@ -117,10 +77,7 @@ void shutdownSubsystems()
 
     ao_close(audioDevice);
     ao_shutdown();
-
-#ifdef __arm__
-    gpioTerminate();
-#endif
+    gpio::shutdown();
 }
 
 void playTrack()
@@ -145,10 +102,10 @@ void playTrack()
     stopPlaying = true;
 }
 
-void processMouthEvents()
+void processEvents()
 {
-    auto event = mouthEvents.cbegin();
-    auto endEvent = mouthEvents.cend();
+    auto event = EVENTS.cbegin();
+    auto endEvent = EVENTS.cend();
     auto startTime = std::chrono::system_clock::now();
     while (!stopPlaying.load() && event != endEvent) {
         auto now = std::chrono::system_clock::now();
@@ -158,10 +115,10 @@ void processMouthEvents()
         if (ms >= event->ms) {
             const unsigned long deviation = ms - event->ms;
             if (deviation != 0) {
-                std::cout << "Handling mouth event, off by " << deviation << std::endl;
+                std::cout << "Handling event, off by " << deviation << " from " << event->ms
+                          << std::endl;
             }
-            setPwm(MOUTH_UPPER, event->upperAngle);
-            setPwm(MOUTH_LOWER, event->lowerAngle);
+            event->run();
             if (event->abort) {
                 break;
             }
@@ -176,42 +133,3 @@ void processMouthEvents()
     }
 }
 
-void processNeckEvents()
-{
-    auto event = neckEvents.cbegin();
-    auto endEvent = neckEvents.cend();
-    auto startTime = std::chrono::system_clock::now();
-    while (!stopPlaying.load() && event != endEvent) {
-        auto now = std::chrono::system_clock::now();
-        const unsigned long ms =
-            std::chrono::duration_cast<std::chrono::milliseconds>(now - startTime).count();
-
-        if (ms >= event->ms) {
-            const unsigned long deviation = ms - event->ms;
-            if (deviation != 0) {
-                std::cout << "Handling neck event, off by " << deviation << std::endl;
-            }
-            setPwm(NECK, event->angle);
-            if (event->abort) {
-                break;
-            }
-            event++;
-        }
-    }
-    if (event->abort) {
-        std::cout << "Aborting event processing." << std::endl;
-        stopPlaying = true;
-    } else {
-        std::cout << "Processed all events." << std::endl;
-    }
-}
-
-void setPwm(const unsigned pin, const int angle)
-{
-#ifdef __arm__
-    gpioPWM(pin, ANGLE(angle));
-#else
-    UNUSED(pin);
-    UNUSED(angle);
-#endif
-}
