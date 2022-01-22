@@ -4,7 +4,7 @@ set -e
 mkdir -p build
 pushd build > /dev/null
 cmake ..
-make -j$(nproc)
+cmake --build .
 popd > /dev/null
 
 if [[ "$*" == *run* ]]; then
