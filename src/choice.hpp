@@ -7,15 +7,15 @@
 
 #define TEMPO_MS 477
 
+// the servos we're using take a little while to hit position so we offset the
+// animation timings to compensate
+#define SERVO_DELAY 50
+
 // pinout
 #define MOUTH_UPPER 14
 #define MOUTH_LOWER 15
 #define NECK 18
 #define BRAIN_WIRE 23
-
-// common angles
-#define MOUTH_PARTIAL 8
-#define MOUTH_OPEN 15
 
 const std::vector<unsigned> PWM_PINS = {MOUTH_UPPER, MOUTH_LOWER, NECK};
 const std::vector<unsigned> IO_PINS = {BRAIN_WIRE};
@@ -36,6 +36,9 @@ class Event
         , value(value)
         , abort(abort)
     {
+        if (type == Mouth && ms > SERVO_DELAY) {
+            ms -= SERVO_DELAY;
+        }
     }
 
     void run() const
@@ -65,7 +68,7 @@ class Event
     const bool abort;
 };
 
-// include events expored from blender animation
+// include events exported from blender animation
 #include "exported_events.hpp"
 
 #endif

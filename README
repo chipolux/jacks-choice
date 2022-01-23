@@ -1,3 +1,11 @@
-# Requirements:
+# Requirements
 * cmake
 * libao
+
+# Animation Events
+Open the `animation.blend` file and run the `ExportScript` in the scripting
+workspace.
+
+Commit the changes to `src/exported_events.hpp` so we don't have install
+blender and generate them on the raspi.
+
